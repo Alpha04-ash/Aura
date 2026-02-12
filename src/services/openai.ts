@@ -1,5 +1,5 @@
 // Try to import real config, fall back to example for builds without secrets
-let CONFIG;
+let CONFIG: { OPENAI_API_KEY: string; REVENUECAT_APPLE_KEY: string; REVENUECAT_GOOGLE_KEY: string };
 try {
     CONFIG = require('../config').CONFIG;
 } catch {
