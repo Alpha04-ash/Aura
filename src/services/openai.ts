@@ -17,12 +17,17 @@ export async function getCoachResponse(
     messages: { role: string; content: string }[]
 ) {
     const lastMessage = messages[messages.length - 1].content;
-    const token = CONFIG.OPENAI_API_KEY;
+
+    // PRIORITY: Check Env Var directly (for Vercel), then Config
+    let token = process.env.EXPO_PUBLIC_OPENAI_API_KEY || CONFIG.OPENAI_API_KEY;
+
+    // Debug log to see what key is being used (safely)
+    console.log(`🔑 AI Key Status: ${token ? (token.startsWith('sk-') ? 'Valid Format (sk-...)' : 'Invalid Format') : 'Missing'} | Source: ${process.env.EXPO_PUBLIC_OPENAI_API_KEY ? 'Env Var' : 'Config'}`);
 
     // 0. Check for Missing Key
-    if (!token || token.includes('YOUR_OPENAI_KEY')) {
+    if (!token || token.includes('YOUR_OPENAI_KEY') || token.includes('YOUR_OPENAI_API_KEY')) {
         console.error('❌ Cloud Intelligence Error: Missing OpenAI Key');
-        return "[System]: OpenAI API Key is missing in config.ts. Please add it to enable AI.";
+        return "[System]: OpenAI API Key is missing. Please add EXPO_PUBLIC_OPENAI_API_KEY to Vercel Environment Variables.";
     }
 
     try {
