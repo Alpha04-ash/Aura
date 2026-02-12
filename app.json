@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Shipyard",
-    "slug": "Shipyard",
+    "slug": "aura",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -21,10 +21,17 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.alpha04sorganization.aura"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "06d9628a-3ba7-4de0-a7d2-3c16559a6c72"
+      }
+    },
+    "owner": "alpha04s-organization"
   }
 }
