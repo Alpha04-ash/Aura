@@ -98,7 +98,7 @@ export const SettingsScreen = () => {
 
     const Wrapper = Platform.OS === 'web' ? View : SafeAreaView;
     const wrapperProps = Platform.OS === 'web'
-        ? { style: { flex: 1, overflow: 'hidden', height: '100%', display: 'flex' as 'flex', flexDirection: 'column' as 'column' } }
+        ? { style: { flex: 1, overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' } as any }
         : { style: { flex: 1 } };
 
     return (

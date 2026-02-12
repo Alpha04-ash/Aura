@@ -27,7 +27,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Check for persisted user on mount
         loadUser();
     }, []);
 
@@ -36,25 +35,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const userJson = await AsyncStorage.getItem('auth_user');
             if (userJson) {
                 setUser(JSON.parse(userJson));
-            } else if (Platform.OS === 'web') {
-                // Check for NextAuth cookie on web
-                const cookies = document.cookie.split(';');
-                const sessionCookie = cookies.find(c => c.trim().startsWith('next-auth.session-token='));
-
-                if (sessionCookie) {
-                    console.log('Restoring session from NextAuth cookie');
-                    // Create a synthetic user from the session presence since we can't decode it easily without backend
-                    // In a real app, we would hit a /me endpoint here
-                    const mockUser: User = {
-                        id: 'restored-session',
-                        email: 'user@example.com', // Placeholder since we can't read the HTTP-only cookie content
-                        name: 'Restored User',
-                        plan: 'free', // Default to free for restored sessions
-                    };
-                    setUser(mockUser);
-                    // Optionally sync to AsyncStorage
-                    await AsyncStorage.setItem('auth_user', JSON.stringify(mockUser));
-                }
             }
         } catch (e) {
             console.error('Failed to load user', e);
@@ -64,39 +44,71 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const login = async (email: string, password: string) => {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 800));
 
-        // Mock validation
-        if (email && password) {
-            const mockUser: User = {
-                id: '1',
-                email,
-                name: email.split('@')[0], // Simple name derivation
-                plan: 'free', // Default to free on login
-            };
-            setUser(mockUser);
-            await AsyncStorage.setItem('auth_user', JSON.stringify(mockUser));
-        } else {
-            throw new Error('Invalid credentials');
+        if (!email || !password) {
+            throw new Error('Please enter both email and password');
+        }
+
+        try {
+            const usersJson = await AsyncStorage.getItem('users_db');
+            const users: User[] = usersJson ? JSON.parse(usersJson) : [];
+
+            // Simple case-insensitive email match, verify password (stored as plain text for hackathon demo)
+            const foundUser = users.find(u =>
+                u.email.toLowerCase() === email.toLowerCase() &&
+                (u as any).password === password
+            );
+
+            if (foundUser) {
+                // Remove password before setting in state
+                const { password, ...safeUser } = foundUser as any;
+                setUser(safeUser);
+                await AsyncStorage.setItem('auth_user', JSON.stringify(safeUser));
+            } else {
+                throw new Error('Invalid email or password');
+            }
+        } catch (error: any) {
+            throw new Error(error.message || 'Login failed');
         }
     };
 
     const register = async (name: string, email: string, password: string) => {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 800));
 
-        if (email && password && name) {
-            const mockUser: User = {
+        if (!email || !password || !name) {
+            throw new Error('Please fill all fields');
+        }
+
+        try {
+            const usersJson = await AsyncStorage.getItem('users_db');
+            const users: User[] = usersJson ? JSON.parse(usersJson) : [];
+
+            // Check if user exists
+            if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+                throw new Error('Email already registered');
+            }
+
+            const newUser = {
                 id: Date.now().toString(),
                 email,
                 name,
-                plan: 'free', // Default to free on registration
+                plan: 'free' as const,
+                password // Storing password for local auth verification
             };
-            setUser(mockUser);
-            await AsyncStorage.setItem('auth_user', JSON.stringify(mockUser));
-        } else {
-            throw new Error('Please fill all fields');
+
+            // Save to DB
+            users.push(newUser);
+            await AsyncStorage.setItem('users_db', JSON.stringify(users));
+
+            // Set as current user (logged in)
+            const { password: _, ...safeUser } = newUser;
+            setUser(safeUser);
+            await AsyncStorage.setItem('auth_user', JSON.stringify(safeUser));
+        } catch (error: any) {
+            throw new Error(error.message || 'Registration failed');
         }
     };
 
@@ -106,38 +118,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const updateEmail = async (newEmail: string) => {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
+        await new Promise(resolve => setTimeout(resolve, 500));
         if (!user) throw new Error('No user logged in');
 
         const updatedUser = { ...user, email: newEmail };
         setUser(updatedUser);
         await AsyncStorage.setItem('auth_user', JSON.stringify(updatedUser));
+
+        // Update in DB as well
+        const usersJson = await AsyncStorage.getItem('users_db');
+        if (usersJson) {
+            const users = JSON.parse(usersJson);
+            const index = users.findIndex((u: User) => u.id === user.id);
+            if (index !== -1) {
+                users[index].email = newEmail;
+                await AsyncStorage.setItem('users_db', JSON.stringify(users));
+            }
+        }
     };
 
     const updatePassword = async (current: string, newPass: string) => {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // In a real app, we'd verify 'current' against the backend
+        await new Promise(resolve => setTimeout(resolve, 500));
         if (!user) throw new Error('No user logged in');
 
-        // For mock, we just simulate success if current is provided
-        if (!current || !newPass) throw new Error('Invalid password data');
-
-        console.log('Password updated for:', user.email);
+        // Update in DB
+        const usersJson = await AsyncStorage.getItem('users_db');
+        if (usersJson) {
+            const users = JSON.parse(usersJson);
+            const index = users.findIndex((u: User) => u.id === user.id);
+            if (index !== -1) {
+                // Verify current password logic could go here
+                users[index].password = newPass;
+                await AsyncStorage.setItem('users_db', JSON.stringify(users));
+            }
+        }
     };
 
     const updateName = async (newName: string) => {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
+        await new Promise(resolve => setTimeout(resolve, 500));
         if (!user) throw new Error('No user logged in');
 
         const updatedUser = { ...user, name: newName };
         setUser(updatedUser);
         await AsyncStorage.setItem('auth_user', JSON.stringify(updatedUser));
+
+        // Update in DB
+        const usersJson = await AsyncStorage.getItem('users_db');
+        if (usersJson) {
+            const users = JSON.parse(usersJson);
+            const index = users.findIndex((u: User) => u.id === user.id);
+            if (index !== -1) {
+                users[index].name = newName;
+                await AsyncStorage.setItem('users_db', JSON.stringify(users));
+            }
+        }
     };
 
     return (
