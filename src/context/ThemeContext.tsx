@@ -24,24 +24,14 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, []);
 
     const loadTheme = async () => {
-        try {
-            const savedTheme = await AsyncStorage.getItem('app_theme');
-            if (savedTheme === 'light' || savedTheme === 'dark') {
-                setThemeState(savedTheme);
-            } else {
-                // Default to system or light
-                setThemeState(systemScheme === 'dark' ? 'dark' : 'light');
-            }
-        } catch (e) {
-            console.error('Failed to load theme', e);
-        } finally {
-            setIsLoaded(true);
-        }
+        // Force light mode
+        setThemeState('light');
+        setIsLoaded(true);
     };
 
     const toggleTheme = () => {
-        const newTheme = theme === 'light' ? 'dark' : 'light';
-        setTheme(newTheme);
+        // Theme toggling disabled - forced light mode
+        setTheme('light');
     };
 
     const setTheme = (newTheme: ThemeType) => {

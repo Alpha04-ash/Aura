@@ -166,22 +166,7 @@ export const SettingsScreen = () => {
                         />
                     </View>
 
-                    <SectionHeader title="Preferences" />
-                    <View style={[styles.sectionContainer, themeStyles.card]}>
-                        <View style={[styles.settingItem, { borderBottomColor: colors.cardBorder }]}>
-                            <View style={styles.settingLeft}>
-                                <View style={[styles.iconContainer, { backgroundColor: theme === 'dark' ? colors.cardBorder : '#F8FAFC' }]}>
-                                    <Moon size={20} color={colors.primary} />
-                                </View>
-                                <Text style={[styles.settingLabel, themeStyles.text]}>Dark Mode</Text>
-                            </View>
-                            <Switch
-                                value={theme === 'dark'}
-                                onValueChange={toggleTheme}
-                                trackColor={{ false: theme === 'dark' ? '#334155' : '#E2E8F0', true: colors.primary }}
-                            />
-                        </View>
-                    </View>
+
 
                     <SectionHeader title="Support" />
                     <View style={[styles.sectionContainer, themeStyles.card]}>
