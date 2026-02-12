@@ -1,4 +1,11 @@
-import { CONFIG } from '../config';
+// Try to import real config, fall back to example for builds without secrets
+let CONFIG;
+try {
+    CONFIG = require('../config').CONFIG;
+} catch {
+    CONFIG = require('../config.example').CONFIG;
+}
+
 
 // 🚀 HACKATHON MODE: 'Neural Fallback'
 // If the API fails (common on free tiers/quotas), we switch to a local logic engine

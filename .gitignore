@@ -41,3 +41,4 @@ yarn-error.*
 
 # API keys and secrets
 src/config.ts
+debug_hf_connection.js
