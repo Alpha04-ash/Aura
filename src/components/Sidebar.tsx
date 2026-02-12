@@ -36,7 +36,7 @@ export const Sidebar = () => {
                     <View style={[styles.logoPlaceholder, { backgroundColor: colors.primary }]}>
                         <Text style={styles.logoText}>S</Text>
                     </View>
-                    <Text style={[styles.brandName, { color: colors.text.primary }]}>Shipyard</Text>
+                    <Text style={[styles.brandName, { color: colors.text.primary }]}>Aura</Text>
                 </View>
 
                 {/* Menu */}
