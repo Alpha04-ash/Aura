@@ -5,9 +5,10 @@
 
 export const CONFIG = {
     // OpenAI Configuration
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY || 'YOUR_OPENAI_API_KEY_HERE',
+    // NOTE: For Expo Web (client-side), we must use EXPO_PUBLIC_ prefix or the key won't be visible.
+    OPENAI_API_KEY: process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY || 'YOUR_OPENAI_API_KEY_HERE',
 
     // RevenueCat Configuration
-    REVENUECAT_APPLE_KEY: process.env.REVENUECAT_APPLE_KEY || 'YOUR_APPLE_KEY_HERE',
-    REVENUECAT_GOOGLE_KEY: process.env.REVENUECAT_GOOGLE_KEY || 'YOUR_GOOGLE_KEY_HERE',
+    REVENUECAT_APPLE_KEY: process.env.EXPO_PUBLIC_REVENUECAT_APPLE_KEY || process.env.REVENUECAT_APPLE_KEY || 'YOUR_APPLE_KEY_HERE',
+    REVENUECAT_GOOGLE_KEY: process.env.EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY || process.env.REVENUECAT_GOOGLE_KEY || 'YOUR_GOOGLE_KEY_HERE',
 };
