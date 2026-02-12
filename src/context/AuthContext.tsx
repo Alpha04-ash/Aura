@@ -27,25 +27,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        loadUser();
+        initializeAuth();
     }, []);
 
-    const loadUser = async () => {
+    const initializeAuth = async () => {
         try {
+            // Checks if users_db exists, if not, create it
+            const usersDb = await AsyncStorage.getItem('users_db');
+            if (!usersDb) {
+                await AsyncStorage.setItem('users_db', JSON.stringify([]));
+                console.log('Initialized empty users_db');
+            }
+
+            // Check for persisted session
             const userJson = await AsyncStorage.getItem('auth_user');
             if (userJson) {
-                setUser(JSON.parse(userJson));
+                const restoredUser = JSON.parse(userJson);
+                console.log('Restored session for:', restoredUser.email);
+                setUser(restoredUser);
             }
         } catch (e) {
-            console.error('Failed to load user', e);
+            console.error('Failed to initialize auth', e);
         } finally {
             setIsLoading(false);
         }
     };
 
     const login = async (email: string, password: string) => {
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 800));
+        // Shorter delay for better UX
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         if (!email || !password) {
             throw new Error('Please enter both email and password');
@@ -54,29 +64,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             const usersJson = await AsyncStorage.getItem('users_db');
             const users: User[] = usersJson ? JSON.parse(usersJson) : [];
+            console.log('Attempting login. Total users:', users.length);
 
-            // Simple case-insensitive email match, verify password (stored as plain text for hackathon demo)
+            const normalizedEmail = email.trim().toLowerCase();
             const foundUser = users.find(u =>
-                u.email.toLowerCase() === email.toLowerCase() &&
+                u.email.toLowerCase() === normalizedEmail &&
                 (u as any).password === password
             );
 
             if (foundUser) {
-                // Remove password before setting in state
                 const { password, ...safeUser } = foundUser as any;
                 setUser(safeUser);
                 await AsyncStorage.setItem('auth_user', JSON.stringify(safeUser));
+                console.log('Login successful for:', normalizedEmail);
             } else {
+                console.warn('Login failed: Invalid credentials for', normalizedEmail);
                 throw new Error('Invalid email or password');
             }
         } catch (error: any) {
+            console.error('Login error:', error);
             throw new Error(error.message || 'Login failed');
         }
     };
 
     const register = async (name: string, email: string, password: string) => {
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         if (!email || !password || !name) {
             throw new Error('Please fill all fields');
@@ -86,91 +98,105 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const usersJson = await AsyncStorage.getItem('users_db');
             const users: User[] = usersJson ? JSON.parse(usersJson) : [];
 
-            // Check if user exists
-            if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+            const normalizedEmail = email.trim().toLowerCase();
+
+            if (users.some(u => u.email.toLowerCase() === normalizedEmail)) {
                 throw new Error('Email already registered');
             }
 
             const newUser = {
                 id: Date.now().toString(),
-                email,
-                name,
+                email: normalizedEmail,
+                name: name.trim(),
                 plan: 'free' as const,
                 password // Storing password for local auth verification
             };
 
-            // Save to DB
             users.push(newUser);
             await AsyncStorage.setItem('users_db', JSON.stringify(users));
+            console.log('Registered new user:', normalizedEmail);
 
-            // Set as current user (logged in)
             const { password: _, ...safeUser } = newUser;
             setUser(safeUser);
             await AsyncStorage.setItem('auth_user', JSON.stringify(safeUser));
         } catch (error: any) {
+            console.error('Registration error:', error);
             throw new Error(error.message || 'Registration failed');
         }
     };
 
     const logout = async () => {
-        await AsyncStorage.removeItem('auth_user');
-        setUser(null);
+        try {
+            await AsyncStorage.removeItem('auth_user');
+            setUser(null);
+        } catch (e) {
+            console.error('Logout failed', e);
+        }
     };
 
     const updateEmail = async (newEmail: string) => {
-        await new Promise(resolve => setTimeout(resolve, 500));
         if (!user) throw new Error('No user logged in');
 
-        const updatedUser = { ...user, email: newEmail };
-        setUser(updatedUser);
-        await AsyncStorage.setItem('auth_user', JSON.stringify(updatedUser));
+        try {
+            const normalizedEmail = newEmail.trim().toLowerCase();
+            const updatedUser = { ...user, email: normalizedEmail };
+            setUser(updatedUser);
+            await AsyncStorage.setItem('auth_user', JSON.stringify(updatedUser));
 
-        // Update in DB as well
-        const usersJson = await AsyncStorage.getItem('users_db');
-        if (usersJson) {
-            const users = JSON.parse(usersJson);
-            const index = users.findIndex((u: User) => u.id === user.id);
-            if (index !== -1) {
-                users[index].email = newEmail;
-                await AsyncStorage.setItem('users_db', JSON.stringify(users));
+            const usersJson = await AsyncStorage.getItem('users_db');
+            if (usersJson) {
+                const users = JSON.parse(usersJson);
+                const index = users.findIndex((u: User) => u.id === user.id);
+                if (index !== -1) {
+                    users[index].email = normalizedEmail;
+                    await AsyncStorage.setItem('users_db', JSON.stringify(users));
+                }
             }
+        } catch (e) {
+            console.error('Update email failed', e);
+            throw e;
         }
     };
 
     const updatePassword = async (current: string, newPass: string) => {
-        await new Promise(resolve => setTimeout(resolve, 500));
         if (!user) throw new Error('No user logged in');
 
-        // Update in DB
-        const usersJson = await AsyncStorage.getItem('users_db');
-        if (usersJson) {
-            const users = JSON.parse(usersJson);
-            const index = users.findIndex((u: User) => u.id === user.id);
-            if (index !== -1) {
-                // Verify current password logic could go here
-                users[index].password = newPass;
-                await AsyncStorage.setItem('users_db', JSON.stringify(users));
+        try {
+            const usersJson = await AsyncStorage.getItem('users_db');
+            if (usersJson) {
+                const users = JSON.parse(usersJson);
+                const index = users.findIndex((u: User) => u.id === user.id);
+                if (index !== -1) {
+                    users[index].password = newPass;
+                    await AsyncStorage.setItem('users_db', JSON.stringify(users));
+                }
             }
+        } catch (e) {
+            console.error('Update password failed', e);
+            throw e;
         }
     };
 
     const updateName = async (newName: string) => {
-        await new Promise(resolve => setTimeout(resolve, 500));
         if (!user) throw new Error('No user logged in');
 
-        const updatedUser = { ...user, name: newName };
-        setUser(updatedUser);
-        await AsyncStorage.setItem('auth_user', JSON.stringify(updatedUser));
+        try {
+            const updatedUser = { ...user, name: newName.trim() };
+            setUser(updatedUser);
+            await AsyncStorage.setItem('auth_user', JSON.stringify(updatedUser));
 
-        // Update in DB
-        const usersJson = await AsyncStorage.getItem('users_db');
-        if (usersJson) {
-            const users = JSON.parse(usersJson);
-            const index = users.findIndex((u: User) => u.id === user.id);
-            if (index !== -1) {
-                users[index].name = newName;
-                await AsyncStorage.setItem('users_db', JSON.stringify(users));
+            const usersJson = await AsyncStorage.getItem('users_db');
+            if (usersJson) {
+                const users = JSON.parse(usersJson);
+                const index = users.findIndex((u: User) => u.id === user.id);
+                if (index !== -1) {
+                    users[index].name = newName.trim();
+                    await AsyncStorage.setItem('users_db', JSON.stringify(users));
+                }
             }
+        } catch (e) {
+            console.error('Update name failed', e);
+            throw e;
         }
     };
 
